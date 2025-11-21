@@ -2,7 +2,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "BYW SCRIPT (v1.0)",
+   Name = "BYW SCRIPT v1.0",
    LoadingTitle = "BYW SCRIPT", 
    LoadingSubtitle = "by BYW",
    ConfigurationSaving = {
