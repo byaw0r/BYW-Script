@@ -1,9 +1,9 @@
--- Rayfield Interface Suite
+-- BYW SCRIPT
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "BYW SCRIPT",
-   LoadingTitle = "BYW SCRIPT",
+   LoadingTitle = "BYW SCRIPT", 
    LoadingSubtitle = "by BYW",
    ConfigurationSaving = {
       Enabled = true,
@@ -12,7 +12,7 @@ local Window = Rayfield:CreateWindow({
    },
    Discord = {
       Enabled = false,
-      Invite = "noinvitelink",
+      Invite = "noinvitelink", 
       RememberJoins = true
    },
    KeySystem = true,
@@ -20,7 +20,7 @@ local Window = Rayfield:CreateWindow({
       Title = "BYW SCRIPT",
       Subtitle = "Key System",
       Note = "Enter key to continue",
-      FileName = "BYWKey",
+      FileName = "BYWKey", 
       SaveKey = true,
       GrabKeyFromSite = false,
       Key = {"BYW"}
@@ -415,6 +415,16 @@ end
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 local AimTab = Window:CreateTab("Aim", 4483362458)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+-- Добавляем отступ сверху для всех вкладок (пустой элемент)
+local function addTopPadding(tab)
+    tab:CreateSection(" ") -- Пустая секция для отступа
+end
+
+-- Добавляем отступы ко всем вкладкам
+addTopPadding(ESPTab)
+addTopPadding(AimTab) 
+addTopPadding(SettingsTab)
 
 -- ESP Elements
 local BoxesToggle = ESPTab:CreateToggle({
