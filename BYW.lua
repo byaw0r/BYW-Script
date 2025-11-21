@@ -428,18 +428,6 @@ local MainTab = Window:CreateTab("Main", 4483362458)
 local AimTab = Window:CreateTab("Aim", 4483362458)
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 local ProtectionTab = Window:CreateTab("Protection", 4483362458)
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
-
--- Добавляем отступ сверху для всех вкладок
-local function addTopPadding(tab)
-    tab:CreateSection(" ")
-end
-
-addTopPadding(MainTab)
-addTopPadding(AimTab)
-addTopPadding(ESPTab)
-addTopPadding(ProtectionTab)
-addTopPadding(SettingsTab)
 
 -- Main Elements
 MainTab:CreateParagraph({
@@ -464,6 +452,15 @@ local SilentAimToggle = AimTab:CreateToggle({
     Callback = function(Value)
         silentAimEnabled = Value
         updateCircle()
+    end,
+})
+
+local WallCheckToggle = AimTab:CreateToggle({
+    Name = "Wall Check",
+    CurrentValue = false,
+    Flag = "WallCheckToggle",
+    Callback = function(Value)
+        wallCheckEnabled = Value
     end,
 })
 
@@ -513,17 +510,8 @@ local NamesToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Protection Elements
-local RejoinButton = ProtectionTab:CreateButton({
-    Name = "Rejoin",
-    Callback = function()
-        rejoin()
-    end,
-})
-
--- Settings Elements
-local TeamCheckToggle = SettingsTab:CreateToggle({
-    Name = "Team Check",
+local TeamCheckToggle = ESPTab:CreateToggle({
+    Name = "Team Check (Aim,ESP)",
     CurrentValue = false,
     Flag = "TeamCheckToggle",
     Callback = function(Value)
@@ -532,12 +520,11 @@ local TeamCheckToggle = SettingsTab:CreateToggle({
     end,
 })
 
-local WallCheckToggle = SettingsTab:CreateToggle({
-    Name = "Wall Check",
-    CurrentValue = false,
-    Flag = "WallCheckToggle",
-    Callback = function(Value)
-        wallCheckEnabled = Value
+-- Protection Elements
+local RejoinButton = ProtectionTab:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        rejoin()
     end,
 })
 
