@@ -32,7 +32,6 @@ local Window = Rayfield:CreateWindow({
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
@@ -50,10 +49,6 @@ local silentAimEnabled = false
 local wallCheckEnabled = false
 local circleRadius = 50
 
--- Server Hop Variables
-local autoServerHop = false
-local serverHopDelay = 60 -- seconds
-
 -- Create Silent Aim Circle
 if Drawing then
     circle = Drawing.new("Circle")
@@ -65,64 +60,6 @@ if Drawing then
     circle.Radius = circleRadius
     circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end
-
--- Server Hop Functions
-local function getServers()
-    local servers = {}
-    local success, result = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    
-    if success and result and result.data then
-        for _, server in pairs(result.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                table.insert(servers, server.id)
-            end
-        end
-    end
-    return servers
-end
-
-local function serverHop()
-    local servers = getServers()
-    if #servers > 0 then
-        local randomServer = servers[math.random(1, #servers)]
-        Rayfield:Notify({
-            Title = "Server Hop",
-            Content = "Переход на новый сервер...",
-            Duration = 3,
-            Image = 4483362458,
-        })
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer)
-    else
-        Rayfield:Notify({
-            Title = "Server Hop",
-            Content = "Нет доступных серверов!",
-            Duration = 3,
-            Image = 4483362458,
-        })
-    end
-end
-
-local function quickServerHop()
-    local servers = getServers()
-    if #servers > 0 then
-        local randomServer = servers[math.random(1, #servers)]
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer)
-    end
-end
-
--- Server Hop Loop
-local lastHopTime = tick()
-RunService.Heartbeat:Connect(function()
-    if autoServerHop then
-        local currentTime = tick()
-        if currentTime - lastHopTime >= serverHopDelay then
-            lastHopTime = currentTime
-            serverHop()
-        end
-    end
-end)
 
 -- ESP Functions
 local function isEnemy(player)
@@ -476,22 +413,72 @@ local function updateCircle()
     end
 end
 
--- Create Tabs
-local ESPTab = Window:CreateTab("ESP", 4483362458)
-local AimTab = Window:CreateTab("Aim", 4483362458)
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
-local ProtectionTab = Window:CreateTab("Protection", 4483362458) -- Новая вкладка
-
--- Добавляем отступ сверху для всех вкладок (пустой элемент)
-local function addTopPadding(tab)
-    tab:CreateSection(" ") -- Пустая секция для отступа
+local function rejoin()
+    Rayfield:Notify({
+        Title = "Rejoin",
+        Content = "Перезаходим на сервер...",
+        Duration = 3,
+        Image = 4483362458,
+    })
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
 end
 
--- Добавляем отступы ко всем вкладкам
+-- Create Tabs
+local MainTab = Window:CreateTab("Main", 4483362458)
+local AimTab = Window:CreateTab("Aim", 4483362458)
+local ESPTab = Window:CreateTab("ESP", 4483362458)
+local ProtectionTab = Window:CreateTab("Protection", 4483362458)
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+-- Добавляем отступ сверху для всех вкладок
+local function addTopPadding(tab)
+    tab:CreateSection(" ")
+end
+
+addTopPadding(MainTab)
+addTopPadding(AimTab)
 addTopPadding(ESPTab)
-addTopPadding(AimTab) 
-addTopPadding(SettingsTab)
 addTopPadding(ProtectionTab)
+addTopPadding(SettingsTab)
+
+-- Main Elements
+MainTab:CreateParagraph({
+    Title = "BYW SCRIPT v1.1",
+    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.1\n\nЧто нового в v1.1:\n• Добавлена система ESP\n• Реализован Aimbot и Silent Aim\n• Добавлены настройки Team Check и Wall Check\n• Улучшен интерфейс\n• Оптимизирована работа скрипта\n\nСкрипт создан для улучшения игрового опыта и предназначен для ознакомительных целей."
+})
+
+-- Aim Elements
+local AimbotToggle = AimTab:CreateToggle({
+    Name = "Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        aimbotEnabled = Value
+    end,
+})
+
+local SilentAimToggle = AimTab:CreateToggle({
+    Name = "Silent Aim",
+    CurrentValue = false,
+    Flag = "SilentAimToggle",
+    Callback = function(Value)
+        silentAimEnabled = Value
+        updateCircle()
+    end,
+})
+
+local CircleSizeSlider = AimTab:CreateSlider({
+    Name = "Silent Aim Circle Size",
+    Range = {10, 200},
+    Increment = 5,
+    Suffix = "px",
+    CurrentValue = 50,
+    Flag = "CircleSizeSlider",
+    Callback = function(Value)
+        circleRadius = Value
+        updateCircle()
+    end,
+})
 
 -- ESP Elements
 local BoxesToggle = ESPTab:CreateToggle({
@@ -526,23 +513,11 @@ local NamesToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Aim Elements
-local AimbotToggle = AimTab:CreateToggle({
-    Name = "Aimbot",
-    CurrentValue = false,
-    Flag = "AimbotToggle",
-    Callback = function(Value)
-        aimbotEnabled = Value
-    end,
-})
-
-local SilentAimToggle = AimTab:CreateToggle({
-    Name = "Silent Aim",
-    CurrentValue = false,
-    Flag = "SilentAimToggle",
-    Callback = function(Value)
-        silentAimEnabled = Value
-        updateCircle()
+-- Protection Elements
+local RejoinButton = ProtectionTab:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        rejoin()
     end,
 })
 
@@ -563,57 +538,6 @@ local WallCheckToggle = SettingsTab:CreateToggle({
     Flag = "WallCheckToggle",
     Callback = function(Value)
         wallCheckEnabled = Value
-    end,
-})
-
-local CircleSizeSlider = SettingsTab:CreateSlider({
-    Name = "Silent Aim Circle Size",
-    Range = {10, 200},
-    Increment = 5,
-    Suffix = "px",
-    CurrentValue = 50,
-    Flag = "CircleSizeSlider",
-    Callback = function(Value)
-        circleRadius = Value
-        updateCircle()
-    end,
-})
-
--- Protection Elements
-local ServerHopToggle = ProtectionTab:CreateToggle({
-    Name = "Auto Server Hop",
-    CurrentValue = false,
-    Flag = "ServerHopToggle",
-    Callback = function(Value)
-        autoServerHop = Value
-        if Value then
-            Rayfield:Notify({
-                Title = "Server Hop",
-                Content = "Авто-смена сервера включена!",
-                Duration = 3,
-                Image = 4483362458,
-            })
-            lastHopTime = tick() -- Сброс таймера при включении
-        end
-    end,
-})
-
-local ServerHopDelaySlider = ProtectionTab:CreateSlider({
-    Name = "Server Hop Delay",
-    Range = {30, 300},
-    Increment = 10,
-    Suffix = "секунд",
-    CurrentValue = 60,
-    Flag = "ServerHopDelaySlider",
-    Callback = function(Value)
-        serverHopDelay = Value
-    end,
-})
-
-local QuickServerHopButton = ProtectionTab:CreateButton({
-    Name = "Быстрый Server Hop",
-    Callback = function()
-        quickServerHop()
     end,
 })
 
@@ -658,4 +582,4 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-print("BYW SCRIPT v1.1 loaded with Server Hop!")
+print("BYW SCRIPT v1.1 loaded!")
