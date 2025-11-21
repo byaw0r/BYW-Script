@@ -24,7 +24,7 @@ local Window = Rayfield:CreateWindow({
       SaveKey = true,
       GrabKeyFromSite = false,
       Key = {"BYW"}
-   }
+   },
       DisableRayfieldPrompts = true
 })
 
