@@ -1,9 +1,9 @@
--- BYW SCRIPT v1.1
+-- BYW SCRIPT v1.3.1
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "BYW SCRIPT v1.1",
-   LoadingTitle = "BYW SCRIPT v1.1", 
+   Name = "BYW SCRIPT v1.3.1",
+   LoadingTitle = "BYW SCRIPT v1.3.1", 
    LoadingSubtitle = "by BYW",
    ConfigurationSaving = {
       Enabled = true,
@@ -43,11 +43,17 @@ local circle
 local showBoxes = false
 local showLines = false
 local showNames = false
+local showChams = false
 local teamCheck = false
 local aimbotEnabled = false
 local silentAimEnabled = false
 local wallCheckEnabled = false
 local circleRadius = 50
+
+-- New Variables v1.3.1
+local speedHackEnabled = false
+local playerSpeed = 16
+local noclipEnabled = false
 
 -- Create Silent Aim Circle
 if Drawing then
@@ -59,6 +65,45 @@ if Drawing then
     circle.Filled = false
     circle.Radius = circleRadius
     circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+-- Speed Hack Function
+local function updateSpeed()
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("Humanoid") then
+        if speedHackEnabled then
+            character.Humanoid.WalkSpeed = playerSpeed
+        else
+            character.Humanoid.WalkSpeed = 16
+        end
+    end
+end
+
+-- Noclip Function
+local noclipConnection
+local function toggleNoclip(value)
+    noclipEnabled = value
+    if value then
+        noclipConnection = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        Rayfield:Notify({
+            Title = "Noclip",
+            Content = "Режим ноклип включен",
+            Duration = 3,
+            Image = 4483362458,
+        })
+    else
+        if noclipConnection then
+            noclipConnection:Disconnect()
+        end
+    end
 end
 
 -- ESP Functions
@@ -140,6 +185,36 @@ local function isValidCharacter(char)
     return hrp and humanoid and humanoid.Health > 0
 end
 
+local function applyChams(character, teamColor)
+    if not character then return end
+    
+    -- Удаляем старые Highlight если есть
+    local oldHighlight = character:FindFirstChildOfClass("Highlight")
+    if oldHighlight then
+        oldHighlight:Destroy()
+    end
+    
+    -- Создаем один Highlight на весь персонаж
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = character
+    highlight.Adornee = character
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor = teamColor
+    highlight.FillTransparency = 0.7  -- Прозрачность заливки
+    highlight.OutlineColor = Color3.new(0, 0, 0)  -- Черная обводка
+    highlight.OutlineTransparency = 0  -- Непрозрачная обводка
+    highlight.Enabled = true
+end
+
+local function removeChams(character)
+    if not character then return end
+    
+    local highlight = character:FindFirstChildOfClass("Highlight")
+    if highlight then
+        highlight:Destroy()
+    end
+end
+
 local function createESP(player)
     if ESPObjects[player] then return ESPObjects[player] end
     if not Drawing then return end
@@ -162,7 +237,11 @@ local function createESP(player)
     nameText.Visible = false
     nameText.ZIndex = 1
     
-    ESPObjects[player] = {Box = box, Line = line, NameText = nameText}
+    ESPObjects[player] = {
+        Box = box, 
+        Line = line, 
+        NameText = nameText
+    }
     return ESPObjects[player]
 end
 
@@ -174,6 +253,7 @@ local function removeESP(player)
         if esp.NameText then esp.NameText:Remove() end
         ESPObjects[player] = nil
     end
+    removeChams(player.Character)
 end
 
 local function clearESP()
@@ -183,6 +263,7 @@ local function clearESP()
             if esp.Line then esp.Line.Visible = false end
             if esp.NameText then esp.NameText.Visible = false end
         end
+        removeChams(player.Character)
     end
 end
 
@@ -193,9 +274,12 @@ local function updateESP()
             if esp.Line then esp.Line.Visible = false end
             if esp.NameText then esp.NameText.Visible = false end
         end
+        if not showChams then
+            removeChams(player.Character)
+        end
     end
 
-    if not (showBoxes or showLines or showNames) then return end
+    if not (showBoxes or showLines or showNames or showChams) then return end
 
     for _, player in pairs(Players:GetPlayers()) do
         if not shouldShowESP(player) then
@@ -205,6 +289,7 @@ local function updateESP()
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
             end
+            removeChams(player.Character)
             continue
         end
         
@@ -215,9 +300,10 @@ local function updateESP()
         if not esp then continue end
         
         local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Head") then
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Head") and char:FindFirstChildOfClass("Humanoid") then
             local head = char.Head
             local hrp = char.HumanoidRootPart
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
             
             local headPos, headVisible = Camera:WorldToViewportPoint(head.Position)
             local feetPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
@@ -229,43 +315,57 @@ local function updateESP()
                 local height = math.abs(feetPos2D.Y - headPos2D.Y)
                 local width = height * 0.6
                 
+                -- Calculate distance
+                local distance = 0
+                if LocalPlayer.Character and isValidCharacter(LocalPlayer.Character) then
+                    distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                end
+                
+                local teamColor = getTeamColor(player)
+                
+                -- Box ESP
                 if showBoxes then
                     esp.Box.Position = Vector2.new(headPos2D.X - width/2, headPos2D.Y)
                     esp.Box.Size = Vector2.new(width, height)
                     esp.Box.Visible = true
-                    esp.Box.Color = getTeamColor(player)
+                    esp.Box.Color = teamColor
                 else
                     esp.Box.Visible = false
                 end
                 
+                -- Line ESP
                 if showLines then
                     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     esp.Line.From = screenCenter
                     esp.Line.To = Vector2.new(headPos2D.X, headPos2D.Y)
-                    esp.Line.Color = getTeamColor(player)
+                    esp.Line.Color = teamColor
                     esp.Line.Visible = true
                 else
                     esp.Line.Visible = false
                 end
                 
+                -- Name ESP с дистанцией
                 if showNames then
-                    local distance = 0
-                    if LocalPlayer.Character and isValidCharacter(LocalPlayer.Character) then
-                        distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    end
-                    
                     esp.NameText.Text = player.Name .. " [" .. math.floor(distance) .. "m]"
                     esp.NameText.Position = Vector2.new(headPos2D.X, headPos2D.Y - 40)
-                    esp.NameText.Color = getTeamColor(player)
+                    esp.NameText.Color = teamColor
                     esp.NameText.Visible = true
                 else
                     esp.NameText.Visible = false
+                end
+                
+                -- Chams ESP (исправленная версия)
+                if showChams then
+                    applyChams(char, teamColor)
+                else
+                    removeChams(char)
                 end
                 
             else
                 if esp.Box then esp.Box.Visible = false end
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
+                removeChams(char)
             end
         else
             if esp then
@@ -273,6 +373,7 @@ local function updateESP()
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
             end
+            removeChams(char)
         end
     end
 end
@@ -423,16 +524,40 @@ local function rejoin()
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
 end
 
+-- Server Info Function
+local function getServerInfo()
+    local players = #Players:GetPlayers()
+    local maxPlayers = game.PlaceId == 0 and "Unknown" or 10 -- Пример
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    
+    Rayfield:Notify({
+        Title = "Server Info",
+        Content = "Игроков: " .. players .. "/" .. maxPlayers .. "\nPlace ID: " .. placeId .. "\nServer ID: " .. jobId,
+        Duration = 5,
+        Image = 4483362458,
+    })
+end
+
 -- Create Tabs
 local MainTab = Window:CreateTab("Main", 4483362458)
 local AimTab = Window:CreateTab("Aim", 4483362458)
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 local ProtectionTab = Window:CreateTab("Protection", 4483362458)
+local MiscTab = Window:CreateTab("Misc", 4483362458)
 
 -- Main Elements
 MainTab:CreateParagraph({
-    Title = "BYW SCRIPT v1.1",
-    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.1\n\nЧто нового в v1.1:\n• Добавлена система ESP\n• Реализован Aimbot и Silent Aim\n• Добавлены настройки Team Check и Wall Check\n• Улучшен интерфейс\n• Оптимизирована работа скрипта\n\nСкрипт создан для улучшения игрового опыта и предназначен для ознакомительных целей."
+    Title = "BYW SCRIPT v1.3.1",
+    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.3.1\n\nЧто нового в v1.3.1:\n• Исправлены Chams ESP\n• Теперь подсвечивается весь персонаж целиком\n• Убраны лишние линии между частями тела\n• Улучшена видимость через стены"
+})
+
+-- Server Info Button (v1.3.1)
+local ServerInfoButton = MainTab:CreateButton({
+    Name = "Server Info",
+    Callback = function()
+        getServerInfo()
+    end,
 })
 
 -- Aim Elements
@@ -506,7 +631,22 @@ local NamesToggle = ESPTab:CreateToggle({
     Flag = "NamesToggle",
     Callback = function(Value)
         showNames = Value
-        clearESP()
+        if not Value then
+            clearESP()
+        end
+    end,
+})
+
+-- Chams Toggle (v1.3.1 - исправленный)
+local ChamsToggle = ESPTab:CreateToggle({
+    Name = "Chams ESP",
+    CurrentValue = false,
+    Flag = "ChamsToggle",
+    Callback = function(Value)
+        showChams = Value
+        if not Value then
+            clearESP()
+        end
     end,
 })
 
@@ -528,13 +668,47 @@ local RejoinButton = ProtectionTab:CreateButton({
     end,
 })
 
+-- Misc Elements (v1.3.1)
+local SpeedHackToggle = MiscTab:CreateToggle({
+    Name = "Speed Hack",
+    CurrentValue = false,
+    Flag = "SpeedHackToggle",
+    Callback = function(Value)
+        speedHackEnabled = Value
+        updateSpeed()
+    end,
+})
+
+local SpeedSlider = MiscTab:CreateSlider({
+    Name = "Speed Value",
+    Range = {16, 100},
+    Increment = 1,
+    Suffix = "studs",
+    CurrentValue = 16,
+    Flag = "SpeedSlider",
+    Callback = function(Value)
+        playerSpeed = Value
+        updateSpeed()
+    end,
+})
+
+local NoclipToggle = MiscTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        toggleNoclip(Value)
+    end,
+})
+
 -- Main Loop
-RunService.RenderStepped:Connect(function()
+RunService.Heartbeat:Connect(function()
     local currentCamera = workspace.CurrentCamera
     if not currentCamera then return end
     
     updateESP()
     updateCircle()
+    updateSpeed()
     
     if aimbotEnabled then
         local closest = getClosestPlayer()
@@ -569,4 +743,4 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-print("BYW SCRIPT v1.1 loaded!")
+print("BYW SCRIPT v1.3.1 loaded!")
