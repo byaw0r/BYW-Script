@@ -25,6 +25,7 @@ local Window = Rayfield:CreateWindow({
       GrabKeyFromSite = false,
       Key = {"BYW"}
    }
+      DisableRayfieldPrompts = true
 })
 
 -- Services
