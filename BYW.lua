@@ -1,9 +1,9 @@
--- BYW SCRIPT v1.3.3
+-- BYW SCRIPT v1.5.0
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "BYW SCRIPT v1.3.3",
-   LoadingTitle = "BYW SCRIPT v1.3.3", 
+   Name = "BYW SCRIPT v1.5.0",
+   LoadingTitle = "BYW SCRIPT v1.5.0", 
    LoadingSubtitle = "by BYW",
    ConfigurationSaving = {
       Enabled = true,
@@ -28,6 +28,7 @@ local Window = Rayfield:CreateWindow({
    DisableRayfieldPrompts = true
 })
 
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
@@ -35,20 +36,24 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
+-- ESP Variables
 local ESPObjects = {}
 local circle
 
+-- ESP Settings
 local showBoxes = false
 local showLines = false
 local showNames = false
 local showChams = false
 local teamCheck = false
-local aimbotEnabled = false
-local silentAimEnabled = false
-local wallCheckEnabled = false
+local aimBotEnabled = false
+local visibleCheckEnabled = false
 local circleRadius = 50
+local showFOV = false
+local rainbowFOV = false
+local rainbowESP = false
 
--- New Variables v1.3.3
+-- New Variables v1.5.0
 local speedHackEnabled = false
 local playerSpeed = 16
 local noclipEnabled = false
@@ -56,7 +61,16 @@ local infiniteJumpEnabled = false
 local jumpPowerEnabled = false
 local jumpPowerValue = 50
 
--- Create Silent Aim Circle
+-- Rainbow Colors Function
+local function getRainbowColor()
+    local tick = tick()
+    local r = math.sin(tick * 2) * 0.5 + 0.5
+    local g = math.sin(tick * 2 + 2) * 0.5 + 0.5
+    local b = math.sin(tick * 2 + 4) * 0.5 + 0.5
+    return Color3.new(r, g, b)
+end
+
+-- Create FOV Circle
 if Drawing then
     circle = Drawing.new("Circle")
     circle.Visible = false
@@ -354,7 +368,7 @@ local function updateESP()
                     distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                 end
                 
-                local teamColor = getTeamColor(player)
+                local teamColor = rainbowESP and getRainbowColor() or getTeamColor(player)
                 
                 -- Box ESP
                 if showBoxes then
@@ -412,7 +426,7 @@ local function updateESP()
 end
 
 local function isVisible(target)
-    if not wallCheckEnabled then return true end
+    if not visibleCheckEnabled then return true end
     
     local localChar = LocalPlayer.Character
     local targetChar = target.Character
@@ -454,12 +468,8 @@ local function isVisible(target)
 end
 
 local function getClosestPlayer()
-    local localChar = LocalPlayer.Character
-    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
-    if not localHRP then return nil end
-    
     local closestPlayer = nil
-    local closestDistance = 500
+    local closestDistance = math.huge
     
     for _, player in pairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
@@ -469,14 +479,18 @@ local function getClosestPlayer()
         end
         
         local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Head") then
-            local hrp = char.HumanoidRootPart
-            local distance = (localHRP.Position - hrp.Position).Magnitude
+        if char and char:FindFirstChild("Head") then
+            local head = char.Head
+            local headPos, onScreen = Camera:WorldToViewportPoint(head.Position)
             
-            if distance < closestDistance then
-                if not wallCheckEnabled or isVisible(player) then
-                    closestPlayer = player
-                    closestDistance = distance
+            if onScreen then
+                local distanceToPlayer = (head.Position - Camera.CFrame.Position).Magnitude
+                
+                if not visibleCheckEnabled or isVisible(player) then
+                    if distanceToPlayer < closestDistance then
+                        closestPlayer = player
+                        closestDistance = distanceToPlayer
+                    end
                 end
             end
         end
@@ -507,7 +521,7 @@ local function getClosestPlayerInCircle()
                 local distanceToCenter = (screenPos - screenCenter).Magnitude
                 
                 if distanceToCenter <= circleRadius then
-                    if not wallCheckEnabled or isVisible(player) then
+                    if not visibleCheckEnabled or isVisible(player) then
                         if distanceToCenter < closestDistance then
                             closestPlayer = player
                             closestDistance = distanceToCenter
@@ -538,8 +552,13 @@ end
 
 local function updateCircle()
     if circle then
-        circle.Visible = silentAimEnabled
+        circle.Visible = showFOV
         circle.Radius = circleRadius
+        if rainbowFOV then
+            circle.Color = getRainbowColor()
+        else
+            circle.Color = Color3.new(1, 1, 1)
+        end
         local currentCamera = workspace.CurrentCamera
         if currentCamera then
             circle.Position = Vector2.new(currentCamera.ViewportSize.X / 2, currentCamera.ViewportSize.Y / 2)
@@ -581,8 +600,8 @@ local ProtectionTab = Window:CreateTab("Protection", 4483362458)
 
 -- Main Elements
 MainTab:CreateParagraph({
-    Title = "BYW SCRIPT v1.3.3",
-    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.3.3\n\nЧто нового в v1.3.3:\n• Убран Custom Crosshair\n• Исправлены Chams ESP\n• Улучшена стабильность"
+    Title = "BYW SCRIPT v1.5.0",
+    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.5.0\n\nЧто нового в v1.5.0:\n• Переименован SilentAim в Aim Bot\n• Добавлен Show FOV\n• Добавлен Visible Check\n• Добавлен Rainbow FOV и Rainbow ESP"
 })
 
 -- Server Info Button
@@ -594,36 +613,45 @@ local ServerInfoButton = MainTab:CreateButton({
 })
 
 -- Aim Elements
-local AimbotToggle = AimTab:CreateToggle({
-    Name = "Aimbot",
+local AimBotToggle = AimTab:CreateToggle({
+    Name = "Aim Bot",
     CurrentValue = false,
-    Flag = "AimbotToggle",
+    Flag = "AimBotToggle",
     Callback = function(Value)
-        aimbotEnabled = Value
+        aimBotEnabled = Value
     end,
 })
 
-local SilentAimToggle = AimTab:CreateToggle({
-    Name = "Silent Aim",
+local ShowFOVToggle = AimTab:CreateToggle({
+    Name = "Show FOV",
     CurrentValue = false,
-    Flag = "SilentAimToggle",
+    Flag = "ShowFOVToggle",
     Callback = function(Value)
-        silentAimEnabled = Value
+        showFOV = Value
         updateCircle()
     end,
 })
 
-local WallCheckToggle = AimTab:CreateToggle({
-    Name = "Wall Check",
+local VisibleCheckToggle = AimTab:CreateToggle({
+    Name = "Visible Check",
     CurrentValue = false,
-    Flag = "WallCheckToggle",
+    Flag = "VisibleCheckToggle",
     Callback = function(Value)
-        wallCheckEnabled = Value
+        visibleCheckEnabled = Value
+    end,
+})
+
+local RainbowFOVToggle = AimTab:CreateToggle({
+    Name = "Rainbow FOV",
+    CurrentValue = false,
+    Flag = "RainbowFOVToggle",
+    Callback = function(Value)
+        rainbowFOV = Value
     end,
 })
 
 local CircleSizeSlider = AimTab:CreateSlider({
-    Name = "Silent Aim Circle Size",
+    Name = "FOV Circle Size",
     Range = {10, 200},
     Increment = 5,
     Suffix = "px",
@@ -680,6 +708,15 @@ local ChamsToggle = ESPTab:CreateToggle({
         if not Value then
             clearESP()
         end
+    end,
+})
+
+local RainbowESPToggle = ESPTab:CreateToggle({
+    Name = "Rainbow ESP",
+    CurrentValue = false,
+    Flag = "RainbowESPToggle",
+    Callback = function(Value)
+        rainbowESP = Value
     end,
 })
 
@@ -776,26 +813,25 @@ RunService.Heartbeat:Connect(function()
     updateSpeed()
     updateJumpPower()
     
-    if aimbotEnabled then
-        local closest = getClosestPlayer()
-        if closest then
-            aimAtTarget(closest)
+    if aimBotEnabled then
+        local closestPlayer
+        if showFOV then
+            closestPlayer = getClosestPlayerInCircle()
+        else
+            closestPlayer = getClosestPlayer()
         end
-    end
-    
-    if silentAimEnabled then
-        local closestInCircle = getClosestPlayerInCircle()
-        if closestInCircle then
-            aimAtTarget(closestInCircle)
+        
+        if closestPlayer then
+            aimAtTarget(closestPlayer)
         end
     end
 end)
 
-
+-- Cleanup on script end
 game:GetService("Players").PlayerRemoving:Connect(function(player)
     if player == LocalPlayer then
         toggleInfiniteJump(false)
-     
+        -- Очищаем все Chams при выходе
         for playerName, highlight in pairs(ChamsHighlights) do
             if highlight then
                 highlight:Destroy()
@@ -806,12 +842,14 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
+-- Initialize ESP for existing players
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         createESP(player)
     end
 end
 
+-- Handle new players
 Players.PlayerAdded:Connect(function(player)
     if player ~= LocalPlayer then
         createESP(player)
@@ -822,4 +860,4 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-print("BYW SCRIPT v1.3.3 loaded!")
+print("BYW SCRIPT v1.5.0 loaded!")
