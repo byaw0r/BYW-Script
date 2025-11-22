@@ -1,9 +1,9 @@
--- BYW SCRIPT v1.3.1
+-- BYW SCRIPT v1.3.3
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "BYW SCRIPT v1.3.1",
-   LoadingTitle = "BYW SCRIPT v1.3.1", 
+   Name = "BYW SCRIPT v1.3.3",
+   LoadingTitle = "BYW SCRIPT v1.3.3", 
    LoadingSubtitle = "by BYW",
    ConfigurationSaving = {
       Enabled = true,
@@ -28,18 +28,16 @@ local Window = Rayfield:CreateWindow({
    DisableRayfieldPrompts = true
 })
 
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- ESP Variables
 local ESPObjects = {}
 local circle
 
--- ESP Settings
 local showBoxes = false
 local showLines = false
 local showNames = false
@@ -50,10 +48,13 @@ local silentAimEnabled = false
 local wallCheckEnabled = false
 local circleRadius = 50
 
--- New Variables v1.3.1
+-- New Variables v1.3.3
 local speedHackEnabled = false
 local playerSpeed = 16
 local noclipEnabled = false
+local infiniteJumpEnabled = false
+local jumpPowerEnabled = false
+local jumpPowerValue = 50
 
 -- Create Silent Aim Circle
 if Drawing then
@@ -65,6 +66,36 @@ if Drawing then
     circle.Filled = false
     circle.Radius = circleRadius
     circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+-- Jump Power Function
+local function updateJumpPower()
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("Humanoid") then
+        if jumpPowerEnabled then
+            character.Humanoid.JumpPower = jumpPowerValue
+        else
+            character.Humanoid.JumpPower = 50
+        end
+    end
+end
+
+-- Infinite Jump Function
+local infiniteJumpConnection
+local function toggleInfiniteJump(value)
+    infiniteJumpEnabled = value
+    if value then
+        infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    else
+        if infiniteJumpConnection then
+            infiniteJumpConnection:Disconnect()
+        end
+    end
 end
 
 -- Speed Hack Function
@@ -185,33 +216,35 @@ local function isValidCharacter(char)
     return hrp and humanoid and humanoid.Health > 0
 end
 
-local function applyChams(character, teamColor)
+-- Исправленная функция Chams
+local ChamsHighlights = {}
+local function applyChams(player, character, teamColor)
     if not character then return end
     
     -- Удаляем старые Highlight если есть
-    local oldHighlight = character:FindFirstChildOfClass("Highlight")
-    if oldHighlight then
-        oldHighlight:Destroy()
+    if ChamsHighlights[player] then
+        ChamsHighlights[player]:Destroy()
+        ChamsHighlights[player] = nil
     end
     
     -- Создаем один Highlight на весь персонаж
     local highlight = Instance.new("Highlight")
-    highlight.Parent = character
+    highlight.Parent = game:GetService("CoreGui")
     highlight.Adornee = character
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.FillColor = teamColor
-    highlight.FillTransparency = 0.7  -- Прозрачность заливки
+    highlight.FillTransparency = 0.3  -- Меньше прозрачности для лучшей видимости
     highlight.OutlineColor = Color3.new(0, 0, 0)  -- Черная обводка
     highlight.OutlineTransparency = 0  -- Непрозрачная обводка
     highlight.Enabled = true
+    
+    ChamsHighlights[player] = highlight
 end
 
-local function removeChams(character)
-    if not character then return end
-    
-    local highlight = character:FindFirstChildOfClass("Highlight")
-    if highlight then
-        highlight:Destroy()
+local function removeChams(player)
+    if ChamsHighlights[player] then
+        ChamsHighlights[player]:Destroy()
+        ChamsHighlights[player] = nil
     end
 end
 
@@ -253,7 +286,7 @@ local function removeESP(player)
         if esp.NameText then esp.NameText:Remove() end
         ESPObjects[player] = nil
     end
-    removeChams(player.Character)
+    removeChams(player)
 end
 
 local function clearESP()
@@ -263,7 +296,7 @@ local function clearESP()
             if esp.Line then esp.Line.Visible = false end
             if esp.NameText then esp.NameText.Visible = false end
         end
-        removeChams(player.Character)
+        removeChams(player)
     end
 end
 
@@ -275,7 +308,7 @@ local function updateESP()
             if esp.NameText then esp.NameText.Visible = false end
         end
         if not showChams then
-            removeChams(player.Character)
+            removeChams(player)
         end
     end
 
@@ -289,7 +322,7 @@ local function updateESP()
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
             end
-            removeChams(player.Character)
+            removeChams(player)
             continue
         end
         
@@ -356,16 +389,16 @@ local function updateESP()
                 
                 -- Chams ESP (исправленная версия)
                 if showChams then
-                    applyChams(char, teamColor)
+                    applyChams(player, char, teamColor)
                 else
-                    removeChams(char)
+                    removeChams(player)
                 end
                 
             else
                 if esp.Box then esp.Box.Visible = false end
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
-                removeChams(char)
+                removeChams(player)
             end
         else
             if esp then
@@ -373,7 +406,7 @@ local function updateESP()
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
             end
-            removeChams(char)
+            removeChams(player)
         end
     end
 end
@@ -543,16 +576,16 @@ end
 local MainTab = Window:CreateTab("Main", 4483362458)
 local AimTab = Window:CreateTab("Aim", 4483362458)
 local ESPTab = Window:CreateTab("ESP", 4483362458)
-local ProtectionTab = Window:CreateTab("Protection", 4483362458)
 local MiscTab = Window:CreateTab("Misc", 4483362458)
+local ProtectionTab = Window:CreateTab("Protection", 4483362458)
 
 -- Main Elements
 MainTab:CreateParagraph({
-    Title = "BYW SCRIPT v1.3.1",
-    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.3.1\n\nЧто нового в v1.3.1:\n• Исправлены Chams ESP\n• Теперь подсвечивается весь персонаж целиком\n• Убраны лишние линии между частями тела\n• Улучшена видимость через стены"
+    Title = "BYW SCRIPT v1.3.3",
+    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.3.3\n\nЧто нового в v1.3.3:\n• Убран Custom Crosshair\n• Исправлены Chams ESP\n• Улучшена стабильность"
 })
 
--- Server Info Button (v1.3.1)
+-- Server Info Button
 local ServerInfoButton = MainTab:CreateButton({
     Name = "Server Info",
     Callback = function()
@@ -637,7 +670,7 @@ local NamesToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Chams Toggle (v1.3.1 - исправленный)
+-- Chams Toggle (исправленная версия)
 local ChamsToggle = ESPTab:CreateToggle({
     Name = "Chams ESP",
     CurrentValue = false,
@@ -660,15 +693,39 @@ local TeamCheckToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Protection Elements
-local RejoinButton = ProtectionTab:CreateButton({
-    Name = "Rejoin",
-    Callback = function()
-        rejoin()
+-- Misc Elements
+local InfiniteJumpToggle = MiscTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfiniteJumpToggle",
+    Callback = function(Value)
+        toggleInfiniteJump(Value)
     end,
 })
 
--- Misc Elements (v1.3.1)
+local JumpPowerToggle = MiscTab:CreateToggle({
+    Name = "Jump Power",
+    CurrentValue = false,
+    Flag = "JumpPowerToggle",
+    Callback = function(Value)
+        jumpPowerEnabled = Value
+        updateJumpPower()
+    end,
+})
+
+local JumpPowerSlider = MiscTab:CreateSlider({
+    Name = "Jump Power Value",
+    Range = {50, 200},
+    Increment = 5,
+    Suffix = "power",
+    CurrentValue = 50,
+    Flag = "JumpPowerSlider",
+    Callback = function(Value)
+        jumpPowerValue = Value
+        updateJumpPower()
+    end,
+})
+
 local SpeedHackToggle = MiscTab:CreateToggle({
     Name = "Speed Hack",
     CurrentValue = false,
@@ -701,6 +758,14 @@ local NoclipToggle = MiscTab:CreateToggle({
     end,
 })
 
+-- Protection Elements
+local RejoinButton = ProtectionTab:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        rejoin()
+    end,
+})
+
 -- Main Loop
 RunService.Heartbeat:Connect(function()
     local currentCamera = workspace.CurrentCamera
@@ -709,6 +774,7 @@ RunService.Heartbeat:Connect(function()
     updateESP()
     updateCircle()
     updateSpeed()
+    updateJumpPower()
     
     if aimbotEnabled then
         local closest = getClosestPlayer()
@@ -725,14 +791,27 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Initialize ESP for existing players
+
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        toggleInfiniteJump(false)
+     
+        for playerName, highlight in pairs(ChamsHighlights) do
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+        ChamsHighlights = {}
+    end
+    removeESP(player)
+end)
+
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         createESP(player)
     end
 end
 
--- Handle new players
 Players.PlayerAdded:Connect(function(player)
     if player ~= LocalPlayer then
         createESP(player)
@@ -743,4 +822,4 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-print("BYW SCRIPT v1.3.1 loaded!")
+print("BYW SCRIPT v1.3.3 loaded!")
