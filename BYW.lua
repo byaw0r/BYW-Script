@@ -28,7 +28,6 @@ local Window = Rayfield:CreateWindow({
    DisableRayfieldPrompts = true
 })
 
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
@@ -36,11 +35,9 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- ESP Variables
 local ESPObjects = {}
 local circle
 
--- ESP Settings
 local showBoxes = false
 local showLines = false
 local showNames = false
@@ -53,7 +50,6 @@ local showFOV = false
 local rainbowFOV = false
 local rainbowESP = false
 
--- New Variables v1.5.0
 local speedHackEnabled = false
 local playerSpeed = 16
 local noclipEnabled = false
@@ -61,7 +57,6 @@ local infiniteJumpEnabled = false
 local jumpPowerEnabled = false
 local jumpPowerValue = 50
 
--- Rainbow Colors Function
 local function getRainbowColor()
     local tick = tick()
     local r = math.sin(tick * 2) * 0.5 + 0.5
@@ -70,7 +65,6 @@ local function getRainbowColor()
     return Color3.new(r, g, b)
 end
 
--- Create FOV Circle
 if Drawing then
     circle = Drawing.new("Circle")
     circle.Visible = false
@@ -82,7 +76,6 @@ if Drawing then
     circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end
 
--- Jump Power Function
 local function updateJumpPower()
     local character = LocalPlayer.Character
     if character and character:FindFirstChild("Humanoid") then
@@ -94,7 +87,6 @@ local function updateJumpPower()
     end
 end
 
--- Infinite Jump Function
 local infiniteJumpConnection
 local function toggleInfiniteJump(value)
     infiniteJumpEnabled = value
@@ -112,7 +104,6 @@ local function toggleInfiniteJump(value)
     end
 end
 
--- Speed Hack Function
 local function updateSpeed()
     local character = LocalPlayer.Character
     if character and character:FindFirstChild("Humanoid") then
@@ -124,7 +115,6 @@ local function updateSpeed()
     end
 end
 
--- Noclip Function
 local noclipConnection
 local function toggleNoclip(value)
     noclipEnabled = value
@@ -151,7 +141,6 @@ local function toggleNoclip(value)
     end
 end
 
--- ESP Functions
 local function isEnemy(player)
     if not teamCheck then return true end
     if not LocalPlayer.Team then return true end
@@ -230,26 +219,23 @@ local function isValidCharacter(char)
     return hrp and humanoid and humanoid.Health > 0
 end
 
--- Исправленная функция Chams
 local ChamsHighlights = {}
 local function applyChams(player, character, teamColor)
     if not character then return end
     
-    -- Удаляем старые Highlight если есть
     if ChamsHighlights[player] then
         ChamsHighlights[player]:Destroy()
         ChamsHighlights[player] = nil
     end
     
-    -- Создаем один Highlight на весь персонаж
     local highlight = Instance.new("Highlight")
     highlight.Parent = game:GetService("CoreGui")
     highlight.Adornee = character
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.FillColor = teamColor
-    highlight.FillTransparency = 0.3  -- Меньше прозрачности для лучшей видимости
-    highlight.OutlineColor = Color3.new(0, 0, 0)  -- Черная обводка
-    highlight.OutlineTransparency = 0  -- Непрозрачная обводка
+    highlight.FillTransparency = 0.3
+    highlight.OutlineColor = Color3.new(0, 0, 0)
+    highlight.OutlineTransparency = 0
     highlight.Enabled = true
     
     ChamsHighlights[player] = highlight
@@ -362,7 +348,6 @@ local function updateESP()
                 local height = math.abs(feetPos2D.Y - headPos2D.Y)
                 local width = height * 0.6
                 
-                -- Calculate distance
                 local distance = 0
                 if LocalPlayer.Character and isValidCharacter(LocalPlayer.Character) then
                     distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
@@ -370,7 +355,6 @@ local function updateESP()
                 
                 local teamColor = rainbowESP and getRainbowColor() or getTeamColor(player)
                 
-                -- Box ESP
                 if showBoxes then
                     esp.Box.Position = Vector2.new(headPos2D.X - width/2, headPos2D.Y)
                     esp.Box.Size = Vector2.new(width, height)
@@ -380,7 +364,6 @@ local function updateESP()
                     esp.Box.Visible = false
                 end
                 
-                -- Line ESP
                 if showLines then
                     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     esp.Line.From = screenCenter
@@ -391,7 +374,6 @@ local function updateESP()
                     esp.Line.Visible = false
                 end
                 
-                -- Name ESP с дистанцией
                 if showNames then
                     esp.NameText.Text = player.Name .. " [" .. math.floor(distance) .. "m]"
                     esp.NameText.Position = Vector2.new(headPos2D.X, headPos2D.Y - 40)
@@ -401,7 +383,6 @@ local function updateESP()
                     esp.NameText.Visible = false
                 end
                 
-                -- Chams ESP (исправленная версия)
                 if showChams then
                     applyChams(player, char, teamColor)
                 else
@@ -576,7 +557,6 @@ local function rejoin()
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
 end
 
--- Server Info Function
 local function getServerInfo()
     local players = #Players:GetPlayers()
     local maxPlayers = game.PlaceId == 0 and "Unknown" or 10 -- Пример
@@ -591,20 +571,17 @@ local function getServerInfo()
     })
 end
 
--- Create Tabs
 local MainTab = Window:CreateTab("Main", 4483362458)
 local AimTab = Window:CreateTab("Aim", 4483362458)
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 local MiscTab = Window:CreateTab("Misc", 4483362458)
 local ProtectionTab = Window:CreateTab("Protection", 4483362458)
 
--- Main Elements
 MainTab:CreateParagraph({
     Title = "BYW SCRIPT v1.5.0",
     Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.5.0\n\nЧто нового в v1.5.0:\n• Переименован SilentAim в Aim Bot\n• Добавлен Show FOV\n• Добавлен Visible Check\n• Добавлен Rainbow FOV и Rainbow ESP"
 })
 
--- Server Info Button
 local ServerInfoButton = MainTab:CreateButton({
     Name = "Server Info",
     Callback = function()
@@ -612,7 +589,6 @@ local ServerInfoButton = MainTab:CreateButton({
     end,
 })
 
--- Aim Elements
 local AimBotToggle = AimTab:CreateToggle({
     Name = "Aim Bot",
     CurrentValue = false,
@@ -663,7 +639,6 @@ local CircleSizeSlider = AimTab:CreateSlider({
     end,
 })
 
--- ESP Elements
 local BoxesToggle = ESPTab:CreateToggle({
     Name = "Box ESP",
     CurrentValue = false,
@@ -698,7 +673,6 @@ local NamesToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Chams Toggle (исправленная версия)
 local ChamsToggle = ESPTab:CreateToggle({
     Name = "Chams ESP",
     CurrentValue = false,
@@ -730,7 +704,6 @@ local TeamCheckToggle = ESPTab:CreateToggle({
     end,
 })
 
--- Misc Elements
 local InfiniteJumpToggle = MiscTab:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
@@ -795,7 +768,6 @@ local NoclipToggle = MiscTab:CreateToggle({
     end,
 })
 
--- Protection Elements
 local RejoinButton = ProtectionTab:CreateButton({
     Name = "Rejoin",
     Callback = function()
@@ -803,7 +775,6 @@ local RejoinButton = ProtectionTab:CreateButton({
     end,
 })
 
--- Main Loop
 RunService.Heartbeat:Connect(function()
     local currentCamera = workspace.CurrentCamera
     if not currentCamera then return end
@@ -827,11 +798,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Cleanup on script end
 game:GetService("Players").PlayerRemoving:Connect(function(player)
     if player == LocalPlayer then
         toggleInfiniteJump(false)
-        -- Очищаем все Chams при выходе
         for playerName, highlight in pairs(ChamsHighlights) do
             if highlight then
                 highlight:Destroy()
@@ -842,14 +811,12 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
--- Initialize ESP for existing players
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         createESP(player)
     end
 end
 
--- Handle new players
 Players.PlayerAdded:Connect(function(player)
     if player ~= LocalPlayer then
         createESP(player)
