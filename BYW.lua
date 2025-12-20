@@ -1,31 +1,64 @@
--- BYW SCRIPT v1.5.0
+--BYW SCRIPT v1.7.0
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "BYW SCRIPT v1.5.0",
-   LoadingTitle = "BYW SCRIPT v1.5.0", 
-   LoadingSubtitle = "by BYW",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "BYW Script",
-      FileName = "Config"
-   },
-   Discord = {
-      Enabled = false,
-      Invite = "noinvitelink", 
-      RememberJoins = true
-   },
-   KeySystem = true,
-   KeySettings = {
-      Title = "BYW SCRIPT",
-      Subtitle = "Key System",
-      Note = "Enter key to continue",
-      FileName = "BYWKey", 
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"BYW"}
-   },
-   DisableRayfieldPrompts = true
+    Name = "BYW SCRIPT v1.7.0",
+    LoadingTitle = "BYW SCRIPT v1.7.0", 
+    LoadingSubtitle = "by Bdev",
+    Theme = {
+    TextColor = Color3.fromRGB(255, 255, 255),
+    Background = Color3.fromRGB(0, 0, 0),
+    Topbar = Color3.fromRGB(30, 30, 30),
+    Shadow = Color3.fromRGB(10, 10, 10),
+    NotificationBackground = Color3.fromRGB(20, 20, 20),
+    NotificationActionsBackground = Color3.fromRGB(230, 230, 230),
+    TabBackground = Color3.fromRGB(255, 255, 255),
+    TabStroke = Color3.fromRGB(200, 200, 200),
+    TabBackgroundSelected = Color3.fromRGB(200, 200, 200),
+    TabTextColor = Color3.fromRGB(0, 0, 0),
+    SelectedTabTextColor = Color3.fromRGB(0, 0, 0),
+    ElementBackground = Color3.fromRGB(35, 35, 35),
+    ElementBackgroundHover = Color3.fromRGB(50, 50, 50),
+    SecondaryElementBackground = Color3.fromRGB(25, 25, 25),
+    ElementStroke = Color3.fromRGB(60, 60, 60),
+    SecondaryElementStroke = Color3.fromRGB(50, 50, 50),
+    SliderBackground = Color3.fromRGB(220, 220, 220),
+    SliderProgress = Color3.fromRGB(80, 80, 80),
+    SliderStroke = Color3.fromRGB(200, 200, 200),
+    ToggleBackground = Color3.fromRGB(40, 40, 40),
+    ToggleEnabled = Color3.fromRGB(220, 220, 220),
+    ToggleDisabled = Color3.fromRGB(120, 120, 120),
+    ToggleEnabledStroke = Color3.fromRGB(200, 200, 200),
+    ToggleDisabledStroke = Color3.fromRGB(150, 150, 150),
+    ToggleEnabledOuterStroke = Color3.fromRGB(180, 180, 180),
+    ToggleDisabledOuterStroke = Color3.fromRGB(80, 80, 80),
+    DropdownSelected = Color3.fromRGB(50, 50, 50),
+    DropdownUnselected = Color3.fromRGB(30, 30, 30),
+    InputBackground = Color3.fromRGB(30, 30, 30),
+    InputStroke = Color3.fromRGB(70, 70, 70),
+    PlaceholderColor = Color3.fromRGB(180, 180, 180)
+},
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "BYW Script",
+        FileName = "Config"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink", 
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "BYW SCRIPT",
+        Subtitle = "Key System",
+        Note = "Enter key to continue",
+        FileName = "BYWKey", 
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"BYW"}
+    },
+    DisableRayfieldPrompts = false,
 })
 
 local Players = game:GetService("Players")
@@ -42,20 +75,29 @@ local showBoxes = false
 local showLines = false
 local showNames = false
 local showChams = false
+local showHealthBar = false
+local showDistanceESP = false
 local teamCheck = false
 local aimBotEnabled = false
+local aimPredictionEnabled = false
 local visibleCheckEnabled = false
 local circleRadius = 50
 local showFOV = false
 local rainbowFOV = false
 local rainbowESP = false
 
+local espMaxDistance = 1000
+
 local speedHackEnabled = false
 local playerSpeed = 16
 local noclipEnabled = false
 local infiniteJumpEnabled = false
-local jumpPowerEnabled = false
-local jumpPowerValue = 50
+
+local customSpawnEnabled = false
+local customSpawnLocation = nil
+local customSpawnPart = nil
+local respawnConnection = nil
+local predictionStrength = 0.1
 
 local function getRainbowColor()
     local tick = tick()
@@ -76,13 +118,64 @@ if Drawing then
     circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 end
 
-local function updateJumpPower()
-    local character = LocalPlayer.Character
-    if character and character:FindFirstChild("Humanoid") then
-        if jumpPowerEnabled then
-            character.Humanoid.JumpPower = jumpPowerValue
-        else
-            character.Humanoid.JumpPower = 50
+local function toggleCustomSpawn(value)
+    customSpawnEnabled = value
+    
+    if value then
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local position = character.HumanoidRootPart.Position
+            
+            customSpawnLocation = position
+            
+            if customSpawnPart then
+                customSpawnPart:Destroy()
+            end
+            
+            customSpawnPart = Instance.new("Part")
+            customSpawnPart.Name = "CustomSpawnPoint"
+            customSpawnPart.Size = Vector3.new(5, 1, 5)
+            customSpawnPart.Position = position
+            customSpawnPart.Anchored = true
+            customSpawnPart.CanCollide = false
+            customSpawnPart.Transparency = 0.7
+            customSpawnPart.Color = Color3.fromRGB(0, 255, 0)
+            customSpawnPart.Material = Enum.Material.Neon
+            customSpawnPart.Parent = workspace
+            
+            local pointLight = Instance.new("PointLight")
+            pointLight.Brightness = 1
+            pointLight.Range = 10
+            pointLight.Color = Color3.fromRGB(0, 255, 0)
+            pointLight.Parent = customSpawnPart
+        end
+        
+        if respawnConnection then
+            respawnConnection:Disconnect()
+        end
+        
+        respawnConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+            wait(0.1)
+            
+            if customSpawnEnabled and customSpawnLocation then
+                local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+                if humanoidRootPart then
+                    humanoidRootPart.CFrame = CFrame.new(customSpawnLocation)
+                end
+            end
+        end)
+        
+    else
+        if customSpawnPart then
+            customSpawnPart:Destroy()
+            customSpawnPart = nil
+        end
+        
+        customSpawnLocation = nil
+        
+        if respawnConnection then
+            respawnConnection:Disconnect()
+            respawnConnection = nil
         end
     end
 end
@@ -128,12 +221,6 @@ local function toggleNoclip(value)
                 end
             end
         end)
-        Rayfield:Notify({
-            Title = "Noclip",
-            Content = "Режим ноклип включен",
-            Duration = 3,
-            Image = 4483362458,
-        })
     else
         if noclipConnection then
             noclipConnection:Disconnect()
@@ -219,6 +306,16 @@ local function isValidCharacter(char)
     return hrp and humanoid and humanoid.Health > 0
 end
 
+local function isWithinESPdistance(player)
+    if not LocalPlayer.Character then return false end
+    if not player.Character then return false end
+    if not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return false end
+    if not player.Character:FindFirstChild("HumanoidRootPart") then return false end
+    
+    local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+    return distance <= espMaxDistance
+end
+
 local ChamsHighlights = {}
 local function applyChams(player, character, teamColor)
     if not character then return end
@@ -270,10 +367,32 @@ local function createESP(player)
     nameText.Visible = false
     nameText.ZIndex = 1
     
+    local healthBarOutline = Drawing.new("Square")
+    healthBarOutline.Thickness = 1
+    healthBarOutline.Filled = false
+    healthBarOutline.Visible = false
+    healthBarOutline.ZIndex = 1
+    
+    local healthBarFill = Drawing.new("Square")
+    healthBarFill.Thickness = 1
+    healthBarFill.Filled = true
+    healthBarFill.Visible = false
+    healthBarFill.ZIndex = 1
+    
+    local distanceText = Drawing.new("Text")
+    distanceText.Size = 14
+    distanceText.Center = true
+    distanceText.Outline = true
+    distanceText.Visible = false
+    distanceText.ZIndex = 1
+    
     ESPObjects[player] = {
         Box = box, 
         Line = line, 
-        NameText = nameText
+        NameText = nameText,
+        HealthBarOutline = healthBarOutline,
+        HealthBarFill = healthBarFill,
+        DistanceText = distanceText
     }
     return ESPObjects[player]
 end
@@ -284,6 +403,9 @@ local function removeESP(player)
         if esp.Box then esp.Box:Remove() end
         if esp.Line then esp.Line:Remove() end
         if esp.NameText then esp.NameText:Remove() end
+        if esp.HealthBarOutline then esp.HealthBarOutline:Remove() end
+        if esp.HealthBarFill then esp.HealthBarFill:Remove() end
+        if esp.DistanceText then esp.DistanceText:Remove() end
         ESPObjects[player] = nil
     end
     removeChams(player)
@@ -295,9 +417,16 @@ local function clearESP()
             if esp.Box then esp.Box.Visible = false end
             if esp.Line then esp.Line.Visible = false end
             if esp.NameText then esp.NameText.Visible = false end
+            if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+            if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+            if esp.DistanceText then esp.DistanceText.Visible = false end
         end
-        removeChams(player)
+        if not showChams then
+            removeChams(player)
+        end
     end
+
+    if not (showBoxes or showLines or showNames or showChams or showHealthBar or showDistanceESP) then return end
 end
 
 local function updateESP()
@@ -306,21 +435,41 @@ local function updateESP()
             if esp.Box then esp.Box.Visible = false end
             if esp.Line then esp.Line.Visible = false end
             if esp.NameText then esp.NameText.Visible = false end
+            if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+            if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+            if esp.DistanceText then esp.DistanceText.Visible = false end
         end
         if not showChams then
             removeChams(player)
         end
     end
 
-    if not (showBoxes or showLines or showNames or showChams) then return end
+    if not (showBoxes or showLines or showNames or showChams or showHealthBar or showDistanceESP) then return end
 
     for _, player in pairs(Players:GetPlayers()) do
+        if not isWithinESPdistance(player) then
+            local esp = ESPObjects[player]
+            if esp then
+                if esp.Box then esp.Box.Visible = false end
+                if esp.Line then esp.Line.Visible = false end
+                if esp.NameText then esp.NameText.Visible = false end
+                if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+                if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+                if esp.DistanceText then esp.DistanceText.Visible = false end
+            end
+            removeChams(player)
+            continue
+        end
+        
         if not shouldShowESP(player) then
             local esp = ESPObjects[player]
             if esp then
                 if esp.Box then esp.Box.Visible = false end
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
+                if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+                if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+                if esp.DistanceText then esp.DistanceText.Visible = false end
             end
             removeChams(player)
             continue
@@ -347,6 +496,19 @@ local function updateESP()
                 
                 local height = math.abs(feetPos2D.Y - headPos2D.Y)
                 local width = height * 0.6
+                
+                local minSize = 15
+                if width < minSize then
+                    width = minSize
+                    height = minSize / 0.6
+                end
+                
+                if height < 5 then
+                    if esp.Box then esp.Box.Visible = false end
+                    if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+                    if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+                    continue
+                end
                 
                 local distance = 0
                 if LocalPlayer.Character and isValidCharacter(LocalPlayer.Character) then
@@ -375,12 +537,50 @@ local function updateESP()
                 end
                 
                 if showNames then
-                    esp.NameText.Text = player.Name .. " [" .. math.floor(distance) .. "m]"
-                    esp.NameText.Position = Vector2.new(headPos2D.X, headPos2D.Y - 40)
+                    esp.NameText.Text = player.Name
+                    esp.NameText.Position = Vector2.new(headPos2D.X, headPos2D.Y - height/2 - 20)
                     esp.NameText.Color = teamColor
                     esp.NameText.Visible = true
                 else
                     esp.NameText.Visible = false
+                end
+                
+                if showHealthBar then
+                    local health = humanoid.Health
+                    local maxHealth = humanoid.MaxHealth
+                    local healthPercent = math.clamp(health / maxHealth, 0, 1)
+                    
+                    local barWidth = 4
+                    local barHeight = math.max(height - 4, 10)
+                    local barX = headPos2D.X - width/2 - 10
+                    local barY = headPos2D.Y + 2
+                    
+                    esp.HealthBarOutline.Position = Vector2.new(barX - 1, barY - 1)
+                    esp.HealthBarOutline.Size = Vector2.new(barWidth + 2, barHeight + 2)
+                    esp.HealthBarOutline.Color = Color3.new(0, 0, 0)
+                    esp.HealthBarOutline.Visible = true
+                    
+                    local fillHeight = barHeight * healthPercent
+                    local fillY = barY + (barHeight - fillHeight)
+                    
+                    esp.HealthBarFill.Position = Vector2.new(barX, fillY)
+                    esp.HealthBarFill.Size = Vector2.new(barWidth, fillHeight)
+                    
+                    local healthColor = Color3.new(1 - healthPercent, healthPercent, 0)
+                    esp.HealthBarFill.Color = healthColor
+                    esp.HealthBarFill.Visible = true
+                else
+                    esp.HealthBarOutline.Visible = false
+                    esp.HealthBarFill.Visible = false
+                end
+                
+                if showDistanceESP then
+                    esp.DistanceText.Text = math.floor(distance) .. "m"
+                    esp.DistanceText.Position = Vector2.new(headPos2D.X, headPos2D.Y + height/2 + 10)
+                    esp.DistanceText.Color = teamColor
+                    esp.DistanceText.Visible = true
+                else
+                    esp.DistanceText.Visible = false
                 end
                 
                 if showChams then
@@ -393,6 +593,9 @@ local function updateESP()
                 if esp.Box then esp.Box.Visible = false end
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
+                if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+                if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+                if esp.DistanceText then esp.DistanceText.Visible = false end
                 removeChams(player)
             end
         else
@@ -400,6 +603,9 @@ local function updateESP()
                 if esp.Box then esp.Box.Visible = false end
                 if esp.Line then esp.Line.Visible = false end
                 if esp.NameText then esp.NameText.Visible = false end
+                if esp.HealthBarOutline then esp.HealthBarOutline.Visible = false end
+                if esp.HealthBarFill then esp.HealthBarFill.Visible = false end
+                if esp.DistanceText then esp.DistanceText.Visible = false end
             end
             removeChams(player)
         end
@@ -516,17 +722,14 @@ local function getClosestPlayerInCircle()
     return closestPlayer
 end
 
-local function aimAtTarget(target)
-    if not target or not target.Character then return end
-    local head = target.Character:FindFirstChild("Head")
-    if not head then return end
+local function aimAtTarget(predictedTargetPosition)
+    if not predictedTargetPosition then return end 
     
     local currentCamera = workspace.CurrentCamera
     if not currentCamera then return end
     
-    local targetPosition = head.Position
     local cameraPosition = currentCamera.CFrame.Position
-    local direction = (targetPosition - cameraPosition).Unit
+    local direction = (predictedTargetPosition - cameraPosition).Unit
     
     currentCamera.CFrame = CFrame.lookAt(cameraPosition, cameraPosition + direction)
 end
@@ -548,27 +751,7 @@ local function updateCircle()
 end
 
 local function rejoin()
-    Rayfield:Notify({
-        Title = "Rejoin",
-        Content = "Перезаходим на сервер...",
-        Duration = 3,
-        Image = 4483362458,
-    })
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
-end
-
-local function getServerInfo()
-    local players = #Players:GetPlayers()
-    local maxPlayers = game.PlaceId == 0 and "Unknown" or 10 -- Пример
-    local placeId = game.PlaceId
-    local jobId = game.JobId
-    
-    Rayfield:Notify({
-        Title = "Server Info",
-        Content = "Игроков: " .. players .. "/" .. maxPlayers .. "\nPlace ID: " .. placeId .. "\nServer ID: " .. jobId,
-        Duration = 5,
-        Image = 4483362458,
-    })
 end
 
 local MainTab = Window:CreateTab("Main", 4483362458)
@@ -578,15 +761,8 @@ local MiscTab = Window:CreateTab("Misc", 4483362458)
 local ProtectionTab = Window:CreateTab("Protection", 4483362458)
 
 MainTab:CreateParagraph({
-    Title = "BYW SCRIPT v1.5.0",
-    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: BYW\nВерсия: 1.5.0\n\nЧто нового в v1.5.0:\n• Переименован SilentAim в Aim Bot\n• Добавлен Show FOV\n• Добавлен Visible Check\n• Добавлен Rainbow FOV и Rainbow ESP"
-})
-
-local ServerInfoButton = MainTab:CreateButton({
-    Name = "Server Info",
-    Callback = function()
-        getServerInfo()
-    end,
+    Title = "BYW SCRIPT v1.7.0",
+    Content = "Добро пожаловать в BYW SCRIPT!\n\nРазработчик: Bdev\nВерсия: 1.7.0\n\nЧто нового в v1.7.0:\n• Добавлено Health Bar\n• Добавлено Distance ESP\n• Добавлен ESP Distance (слайдер)\n• Добавлен Custom Spawn\n• Добавлен Aim Prediction (BETA)\n• Удалено Jump Power\n• Удалено Server Info\n• Исправлен баг с AimBot\n• Исправлен баг с Visible Check\n• Поменяли окраску меню теперь оно черно-белое"
 })
 
 local AimBotToggle = AimTab:CreateToggle({
@@ -595,6 +771,15 @@ local AimBotToggle = AimTab:CreateToggle({
     Flag = "AimBotToggle",
     Callback = function(Value)
         aimBotEnabled = Value
+    end,
+})
+
+local AimPredictionToggle = AimTab:CreateToggle({
+    Name = "Aim Prediction (BETA)",
+    CurrentValue = false,
+    Flag = "AimPredictionToggle",
+    Callback = function(Value)
+        aimPredictionEnabled = Value
     end,
 })
 
@@ -636,6 +821,18 @@ local CircleSizeSlider = AimTab:CreateSlider({
     Callback = function(Value)
         circleRadius = Value
         updateCircle()
+    end,
+})
+
+local PredictionStrengthSlider = AimTab:CreateSlider({
+    Name = "Prediction Strength",
+    Range = {0, 1.0},
+    Increment = 0.01,
+    Suffix = "",
+    CurrentValue = 0.1,
+    Flag = "PredictionStrengthSlider",
+    Callback = function(Value)
+        predictionStrength = Value
     end,
 })
 
@@ -685,6 +882,30 @@ local ChamsToggle = ESPTab:CreateToggle({
     end,
 })
 
+local HealthBarToggle = ESPTab:CreateToggle({
+    Name = "Health Bar",
+    CurrentValue = false,
+    Flag = "HealthBarToggle",
+    Callback = function(Value)
+        showHealthBar = Value
+        if not Value then
+            clearESP()
+        end
+    end,
+})
+
+local DistanceESPToggle = ESPTab:CreateToggle({
+    Name = "Distance ESP",
+    CurrentValue = false,
+    Flag = "DistanceESPToggle",
+    Callback = function(Value)
+        showDistanceESP = Value
+        if not Value then
+            clearESP()
+        end
+    end,
+})
+
 local RainbowESPToggle = ESPTab:CreateToggle({
     Name = "Rainbow ESP",
     CurrentValue = false,
@@ -704,35 +925,33 @@ local TeamCheckToggle = ESPTab:CreateToggle({
     end,
 })
 
+local ESPDistanceSlider = ESPTab:CreateSlider({
+    Name = "ESP Distance",
+    Range = {100, 1000},
+    Increment = 50,
+    Suffix = "studs",
+    CurrentValue = 1000,
+    Flag = "ESPDistanceSlider",
+    Callback = function(Value)
+        espMaxDistance = Value
+    end,
+})
+
+local CustomSpawnToggle = MiscTab:CreateToggle({
+    Name = "Custom Spawn",
+    CurrentValue = false,
+    Flag = "CustomSpawnToggle",
+    Callback = function(Value)
+        toggleCustomSpawn(Value)
+    end,
+})
+
 local InfiniteJumpToggle = MiscTab:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
     Flag = "InfiniteJumpToggle",
     Callback = function(Value)
         toggleInfiniteJump(Value)
-    end,
-})
-
-local JumpPowerToggle = MiscTab:CreateToggle({
-    Name = "Jump Power",
-    CurrentValue = false,
-    Flag = "JumpPowerToggle",
-    Callback = function(Value)
-        jumpPowerEnabled = Value
-        updateJumpPower()
-    end,
-})
-
-local JumpPowerSlider = MiscTab:CreateSlider({
-    Name = "Jump Power Value",
-    Range = {50, 200},
-    Increment = 5,
-    Suffix = "power",
-    CurrentValue = 50,
-    Flag = "JumpPowerSlider",
-    Callback = function(Value)
-        jumpPowerValue = Value
-        updateJumpPower()
     end,
 })
 
@@ -782,7 +1001,6 @@ RunService.Heartbeat:Connect(function()
     updateESP()
     updateCircle()
     updateSpeed()
-    updateJumpPower()
     
     if aimBotEnabled then
         local closestPlayer
@@ -793,7 +1011,18 @@ RunService.Heartbeat:Connect(function()
         end
         
         if closestPlayer then
-            aimAtTarget(closestPlayer)
+            local targetChar = closestPlayer.Character
+            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") and targetChar:FindFirstChildOfClass("Humanoid") then
+                local targetHead = targetChar.Head
+                local targetPosition = targetHead.Position
+                local targetHRP = targetChar.HumanoidRootPart
+                local targetVelocity = targetHRP.Velocity
+                local predictedPosition = targetPosition
+                if aimPredictionEnabled then
+                    predictedPosition = targetPosition + (targetVelocity * predictionStrength)
+                end
+                aimAtTarget(predictedPosition)
+            end
         end
     end
 end)
@@ -801,6 +1030,7 @@ end)
 game:GetService("Players").PlayerRemoving:Connect(function(player)
     if player == LocalPlayer then
         toggleInfiniteJump(false)
+        toggleCustomSpawn(false)
         for playerName, highlight in pairs(ChamsHighlights) do
             if highlight then
                 highlight:Destroy()
@@ -827,4 +1057,4 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-print("BYW SCRIPT v1.5.0 loaded!")
+print("BYW SCRIPT v1.7.0 loaded!")
